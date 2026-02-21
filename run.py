@@ -1,66 +1,38 @@
 # [AUDIT]
 # FILE: run.py
-# ROLE: Flask Application Entry Point & SocketIO Bridge.
-# LAST_CHANGE: Optimized for Vercel deployment; added explicit 'app' export and handler alias.
+# ROLE: Flask Application Entry Point
+# LAST_CHANGE: Fixed issubclass error by simplifying exports for Vercel.
 
 from flask import Flask, redirect, url_for, send_from_directory
 import os
-# Import shared instances to prevent circular dependency
 from extensions import socketio, db
 
 # [BLOCK: RUN_APP_CORE]
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'kiddie_secret_99'
 
-# Vercel and other WSGI servers look for 'app' or 'handler'
-handler = app
-# [/BLOCK: RUN_APP_CORE]
-
-# [BLOCK: DIRECTORY_SETUP]
-# Ensure vault directory exists for snapshots
-# NOTE: On Vercel, this directory is read-only at runtime.
-os.makedirs(os.path.join('database', 'vault'), exist_ok=True)
-# [/BLOCK: DIRECTORY_SETUP]
-
-# [BLOCK: SOCKET_DB_INIT]
-# Initialize shared socket bridge with the app context
+# Initialize shared socket bridge
 socketio.init_app(app)
-# [/BLOCK: SOCKET_DB_INIT]
 
-# [BLOCK: BLUEPRINTS]
+# Register Blueprints
 from routes.parent import parent_bp
 from routes.kid import kid_bp
-
 app.register_blueprint(parent_bp, url_prefix='/parent')
 app.register_blueprint(kid_bp, url_prefix='/kid')
-# [/BLOCK: BLUEPRINTS]
 
-# [BLOCK: SOCKET_EVENTS_IMPORT]
-# IMPORTANT: This must be imported AFTER socketio.init_app to avoid circular imports
+# Import events
 import routes.socket_events
-# [/BLOCK: SOCKET_EVENTS_IMPORT]
+# [/BLOCK: RUN_APP_CORE]
 
 # [BLOCK: MAIN_ROUTES]
 @app.route('/')
 def index():
-    # Redirects to the Parent Hub
     return redirect('/parent/dashboard')
 
 @app.route('/vault/<filename>')
 def serve_vault_image(filename):
-    """Serves captured snapshots from the secure vault."""
     return send_from_directory(os.path.join('database', 'vault'), filename)
 # [/BLOCK: MAIN_ROUTES]
 
-# [BLOCK: LOCAL_SERVER]
 if __name__ == '__main__':
-    # This block is ignored by Vercel and only runs during local development
-    socketio.run(
-        app,
-        host='0.0.0.0',
-        port=5000,
-        debug=True,
-        use_reloader=False,
-        allow_unsafe_werkzeug=True
-    )
-# [/BLOCK: LOCAL_SERVER]
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
