@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}Enroll New Kid{% endblock %}
+
+{% block content %}
+<div class="enroll-container">
+    <h2>Add a Child Profile</h2>
+    <form action="/parent/enroll" method="POST">
+        <label>Child's Name:</label>
+        <input type="text" name="kid_name" required placeholder="e.g. Leo">
+
+        <label>Age:</label>
+        <input type="number" name="kid_age" required>
+
+        <label>Bedtime:</label>
+        <input type="time" name="bedtime" value="20:00">
+
+        <label>Wake-up Time:</label>
+        <input type="time" name="wakeup" value="07:00">
+
+        <button type="submit">Create Profile & Generate QR</button>
+    </form>
+</div>
+{% endblock %}

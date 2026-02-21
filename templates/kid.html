@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div id="init-overlay" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:10000; display:flex; align-items:center; justify-content:center; flex-direction: column; gap: 20px;">
+    <h1 style="color: white; font-family: sans-serif;">Sentinel Kid Portal</h1>
+    <button style="padding: 20px 40px; font-size: 20px; cursor: pointer; border-radius: 10px; background: #38bdf8; color: white; border: none; font-weight: bold; transition: transform 0.2s;"
+            onmouseover="this.style.transform='scale(1.05)'"
+            onmouseout="this.style.transform='scale(1)'"
+            onclick="initPortal()">
+        🚀 START MONITORING
+    </button>
+    <p style="color: #666; font-size: 14px;">Ensure you are using <b>HTTPS/Ngrok</b> for secure features.</p>
+</div>
+
+<div id="wrapper" class="viewport-lock" style="position: relative; width: 100vw; height: 100vh; overflow: hidden; background: black;">
+    
+    <div id="yt-player" class="yt-embed-container" style="width: 100%; height: 100%;"></div>
+
+    <video id="localVideo" autoplay playsinline muted
+           style="position: absolute; top: 0; left: 0; width: 1px; height: 1px; opacity: 0; pointer-events: none; z-index: 1;">
+    </video>
+
+    <div id="night-overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; background: black; opacity: 0; pointer-events: none; z-index: 999; transition: opacity 2s;"></div>
+
+    <div id="status-overlay" class="status-pill" style="position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.5); color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-family: monospace; pointer-events: none; z-index: 1000;">
+        🛰️ SENTINEL ACTIVE | ID: <span style="color: #38bdf8;">{{ kid_id }}</span> | <span id="mic-status">READY</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    /**
+     * [AUDIT]
+     * ROLE: UI Orchestrator.
+     * UPDATES: 
+     * - Fullscreen API integration.
+     * - Delayed YouTube API load to ensure gesture context is captured.
+     * - Added Night Overlay reference for 'switch_mode' command.
+     */
+    const KID_ID = "{{ kid_id }}";
+    window.kidSettings = {{ kid_data|tojson }};
+    window.portalOrigin = window.location.origin;
+
+    function initPortal() {
+        // 1. Request Fullscreen (Essential for browser 'Autoplay' trust)
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+            elem.requestFullscreen().catch(err => console.warn("[⚠️] Fullscreen rejected"));
+        }
+
+        // 2. Unlock UI
+        document.getElementById('init-overlay').style.display = 'none';
+        console.log("[🏠] Handshake Complete. Initializing Modules...");
+
+        // 3. Load YouTube API
+        // We load this AFTER the click to ensure the player instance has "User Activation"
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        // 4. Initialize Hardware (Camera/Mic)
+        if (window.KidHardware && typeof window.KidHardware.init === "function") {
+            window.KidHardware.init();
+        }
+
+        // 5. Initial Mode Check (Night/Day)
+        const isNight = window.kidSettings?.settings?.night_mode || false;
+        document.getElementById('night-overlay').style.opacity = isNight ? "0.6" : "0";
+    }
+
+    // Handle the visual side of the "Night Mode" command here
+    // The logic is in kid_socket.js, but we can also listen here or apply styles globally
+</script>
+
+<script src="{{ url_for('static', filename='js/kid/kid_socket.js') }}"></script>
+<script src="{{ url_for('static', filename='js/kid/kid_player.js') }}"></script>
+<script src="{{ url_for('static', filename='js/kid/kid_hardware.js') }}"></script>
+<script src="{{ url_for('static', filename='js/kid/kid_monitor.js') }}"></script>
+{% endblock %}

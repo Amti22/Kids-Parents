@@ -1,0 +1,61 @@
+{
+    "family_id": "FAM_001",
+    "global_commands": {
+        "pause_all": false,
+        "night_mode_all": false,
+        "global_volume": 100
+    },
+    "library": {
+        "lib_1771468842": {
+            "name": "playlist1",
+            "url": "PLL0kd-62d3N41TwVQcU-fJQhJvYW7IHM0",
+            "type": "playlist",
+            "added_at": "2026-02-19 09:40:42"
+        },
+        "lib_1771468873": {
+            "name": "video1",
+            "url": "I4o7caGRmwk",
+            "type": "video",
+            "added_at": "2026-02-19 09:41:13"
+        }
+    },
+    "kids": {
+        "8660AC2E": {
+            "name": "Leo",
+            "age": "2",
+            "bedtime": "20:00",
+            "wakeup": "07:00",
+            "status": "offline",
+            "connection_vitals": {
+                "signal": "strong",
+                "last_seen": null
+            },
+            "playback": {
+                "current_video": "PLL0kd-62d3N41TwVQcU-fJQhJvYW7IHM0",
+                "last_position": 0,
+                "volume": 80,
+                "is_paused": false,
+                "media_type": "playlist"
+            },
+            "last_alert": {
+                "timestamp": null,
+                "type": null,
+                "image_filename": null
+            },
+            "permissions": {
+                "explorer": false,
+                "can_change_video": false
+            },
+            "settings": {
+                "cry_sensitivity": 0.8,
+                "night_mode": false,
+                "auto_unmute": true
+            },
+            "playlists": {
+                "day": "lib_1771468842",
+                "night": "lib_default_night"
+            },
+            "custom_collections": {}
+        }
+    }
+}

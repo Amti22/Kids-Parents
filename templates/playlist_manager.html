@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .vault-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+    .pl-item { display: flex; justify-content: space-between; align-items: center; background: #0f172a; padding: 15px; border-radius: 8px; margin-top: 10px; border: 1px solid #1e293b; transition: all 0.3s ease; }
+    .pl-item:hover { border-color: #38bdf8; transform: translateX(5px); }
+
+    /* Dynamic Badges */
+    .badge-yt { background: #ef4444; color: white; font-size: 0.7em; padding: 2px 6px; border-radius: 4px; vertical-align: middle; }
+    .badge-type-playlist { background: #3b82f6; color: white; font-size: 0.7em; padding: 2px 6px; border-radius: 4px; margin-left: 5px; }
+    .badge-type-video { background: #10b981; color: white; font-size: 0.7em; padding: 2px 6px; border-radius: 4px; margin-left: 5px; }
+
+    .input-field { flex: 1; padding: 12px; border-radius: 6px; background: #0f172a; border: 1px solid #334155; color: white; outline: none; transition: all 0.2s; }
+    .input-field:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2); }
+
+    .btn-save { background: #38bdf8; color: #0f172a; border: none; padding: 0 25px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+    .btn-save:hover { background: #7dd3fc; }
+    .btn-delete { background: transparent; border: 1px solid #ef4444; color: #ef4444; padding: 5px 12px; border-radius: 4px; cursor: pointer; transition: all 0.2s; font-size: 0.8rem; }
+    .btn-delete:hover { background: #ef4444; color: white; }
+
+    #url-preview { font-size: 0.75rem; margin-top: 8px; color: #94a3b8; min-height: 18px; }
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+
+<div style="max-width: 800px; margin: 40px auto; padding: 0 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+        <h1 style="color: white; margin: 0; font-family: sans-serif;">🎵 Global Library</h1>
+        <a href="/parent/dashboard" style="color: #64748b; text-decoration: none; font-weight: 500;">← Back to Dashboard</a>
+    </div>
+
+    <div class="vault-card">
+        <h3 style="margin-top:0; color: #f8fafc;">Add Content</h3>
+        <p style="color: #94a3b8; font-size: 0.85em; margin-bottom: 15px;">Paste a YouTube Link. The system will auto-detect the ID.</p>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <input type="text" id="new-pl-name" class="input-field" placeholder="Friendly Name (e.g. Bedtime Stories)">
+            <input type="text" id="new-pl-url" class="input-field" placeholder="YouTube Link or ID" oninput="updatePreview()">
+            <button onclick="saveToLibrary()" class="btn-save">ADD TO VAULT</button>
+        </div>
+        <div id="url-preview">Ready for input...</div>
+    </div>
+    <div class="vault-card">
+        <h3 style="margin-top:0; color: #f8fafc;">Saved Content</h3>
+        <div id="library-list">
+            {% if library %}
+                {% for pl_id, pl_data in library.items() %}
+                <div class="pl-item" id="item-{{ pl_id }}">
+                    <div>
+                        <div style="margin-bottom: 6px;">
+                            <span class="badge-yt">YOUTUBE</span>
+                            <span class="badge-type-{{ pl_data.type }}">{{ pl_data.type|upper }}</span>
+                            <strong style="margin-left: 10px; color: white; font-size: 1.1rem;">{{ pl_data.name }}</strong>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <code style="font-size: 0.8em; color: #38bdf8; background: #1e293b; padding: 2px 6px; border-radius: 4px;">ID: {{ pl_data.url }}</code>
+                            <span style="font-size: 0.7rem; color: #475569;">Added: {{ pl_data.added_at }}</span>
+                        </div>
+                    </div>
+                    <button onclick="deletePlaylist('{{ pl_id }}')" class="btn-delete">REMOVE</button>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div id="empty-state" style="text-align: center; padding: 40px; color: #475569;">
+                    <span style="font-size: 3rem; display: block; margin-bottom: 10px;">📂</span>
+                    <p>Your library is empty. Add your first playlist above.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+const socket = io();
+
+// Listen for library updates from the server to keep multiple tabs in sync
+socket.on('library_update', (data) => {
+    if (data.action === 'deleted') {
+        const el = document.getElementById(`item-${data.id}`);
+        if (el) el.remove();
+        console.log(`[📡] Library Sync: Item ${data.id} removed.`);
+    } else if (data.action === 'added') {
+        // Simple reload to fetch the new structure
+        location.reload();
+    }
+});
+
+function updatePreview() {
+    const url = document.getElementById('new-pl-url').value;
+    const preview = document.getElementById('url-preview');
+
+    if (!url) { preview.innerText = "Ready for input..."; return; }
+
+    if (url.includes('list=')) {
+        preview.innerHTML = "✅ Detected: <span style='color:#3b82f6'>YouTube Playlist</span>";
+    } else if (url.match(/(?:v=|\/)([a-zA-Z0-9_-]{11})/)) {
+        preview.innerHTML = "✅ Detected: <span style='color:#10b981'>Single YouTube Video</span>";
+    } else {
+        preview.innerHTML = "❓ Using raw ID / Input not recognized as full URL";
+    }
+}
+
+async function saveToLibrary() {
+    const nameEl = document.getElementById('new-pl-name');
+    const urlEl = document.getElementById('new-pl-url');
+
+    if(!nameEl.value || !urlEl.value) {
+        alert("Please provide both a name and a YouTube link.");
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/library/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: nameEl.value, url: urlEl.value })
+        });
+
+        if (response.ok) {
+            location.reload();
+        } else {
+            alert("Failed to save. Check server logs.");
+        }
+    } catch (err) { console.error("Library Add Error:", err); }
+}
+
+async function deletePlaylist(pl_id) {
+    if(!confirm("Remove this from your library?")) return;
+
+    const item = document.getElementById(`item-${pl_id}`);
+    item.style.opacity = '0.3';
+    item.style.pointerEvents = 'none';
+
+    try {
+        const response = await fetch('/api/library/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ library_id: pl_id })
+        });
+
+        if (response.ok) {
+            // Success! The item will be removed by the socket listener or manually:
+            item.remove();
+            console.log(`[🗑️] Successfully deleted ${pl_id}`);
+        } else {
+            alert("Delete failed on server.");
+            item.style.opacity = '1';
+            item.style.pointerEvents = 'auto';
+        }
+    } catch (err) {
+        console.error("Delete failed:", err);
+        item.style.opacity = '1';
+        item.style.pointerEvents = 'auto';
+    }
+}
+</script>
+{% endblock %}

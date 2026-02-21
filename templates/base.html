@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel - {% block title %}Parent Link{% endblock %}</title>
+
+    <link rel="icon" href="data:,">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
+    <style>
+        /* Ensuring a consistent dark theme base */
+        body { margin: 0; padding: 0; background: #0f172a; color: #f8fafc; }
+        nav {
+            background: #1e293b;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        main { padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .nav-brand { font-size: 1.2rem; font-weight: bold; color: #3b82f6; }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <nav>
+        <div class="nav-brand">🛡️ SENTINEL <span style="color: #94a3b8; font-weight: normal; font-size: 0.8em;">KiddieControl V2.0</span></div>
+    </nav>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>
