@@ -1,18 +1,24 @@
 # [AUDIT]
 # FILE: run.py
 # ROLE: Flask Application Entry Point & SocketIO Bridge.
-# LAST_CHANGE: Fixed __main__ import error for Vercel by using extensions.py bridge.
+# LAST_CHANGE: Optimized for Vercel deployment; added explicit 'app' export and handler alias.
 
 from flask import Flask, redirect, url_for, send_from_directory
 import os
 # Import shared instances to prevent circular dependency
 from extensions import socketio, db
 
+# [BLOCK: RUN_APP_CORE]
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'kiddie_secret_99'
 
+# Vercel and other WSGI servers look for 'app' or 'handler'
+handler = app
+# [/BLOCK: RUN_APP_CORE]
+
 # [BLOCK: DIRECTORY_SETUP]
 # Ensure vault directory exists for snapshots
+# NOTE: On Vercel, this directory is read-only at runtime.
 os.makedirs(os.path.join('database', 'vault'), exist_ok=True)
 # [/BLOCK: DIRECTORY_SETUP]
 
@@ -37,6 +43,7 @@ import routes.socket_events
 # [BLOCK: MAIN_ROUTES]
 @app.route('/')
 def index():
+    # Redirects to the Parent Hub
     return redirect('/parent/dashboard')
 
 @app.route('/vault/<filename>')
@@ -45,8 +52,9 @@ def serve_vault_image(filename):
     return send_from_directory(os.path.join('database', 'vault'), filename)
 # [/BLOCK: MAIN_ROUTES]
 
+# [BLOCK: LOCAL_SERVER]
 if __name__ == '__main__':
-    # allow_unsafe_werkzeug=True is required for the development tunnel (Ngrok)
+    # This block is ignored by Vercel and only runs during local development
     socketio.run(
         app,
         host='0.0.0.0',
@@ -55,3 +63,4 @@ if __name__ == '__main__':
         use_reloader=False,
         allow_unsafe_werkzeug=True
     )
+# [/BLOCK: LOCAL_SERVER]
