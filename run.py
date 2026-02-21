@@ -1,12 +1,12 @@
 # [AUDIT]
 # FILE: run.py
 # ROLE: Flask Application Entry Point & SocketIO Bridge.
-# LAST_CHANGE: Added [BLOCK] tagging and verified Blueprint routing.
+# LAST_CHANGE: Fixed __main__ import error for Vercel by using extensions.py bridge.
 
 from flask import Flask, redirect, url_for, send_from_directory
-from database.context_manager import ContextManager
-from routes.socket_instance import socketio
 import os
+# Import shared instances to prevent circular dependency
+from extensions import socketio, db
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'kiddie_secret_99'
@@ -17,9 +17,8 @@ os.makedirs(os.path.join('database', 'vault'), exist_ok=True)
 # [/BLOCK: DIRECTORY_SETUP]
 
 # [BLOCK: SOCKET_DB_INIT]
-# Initialize shared socket bridge
+# Initialize shared socket bridge with the app context
 socketio.init_app(app)
-db = ContextManager()
 # [/BLOCK: SOCKET_DB_INIT]
 
 # [BLOCK: BLUEPRINTS]

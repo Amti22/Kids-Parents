@@ -1,11 +1,10 @@
-# routes/socket_events.py
 # [BLOCK: SOCKET_CORE_HUB]
 """
 [AUDIT]
 # FILE: routes/socket_events.py
 # ROLE: Identity-based status hub (Role Aware).
-# VERSION: 3.3 (Mirror Loop Prevention)
-# LAST_CHANGE: Optimized state_report to prevent feedback loops during playlist sync.
+# VERSION: 3.4 (Vercel Compatibility Patch)
+# LAST_CHANGE: Fixed circular import by migrating from __main__ to extensions bridge.
 """
 
 import os
@@ -13,7 +12,9 @@ import base64
 from datetime import datetime
 from flask import request
 from flask_socketio import emit, join_room
-from __main__ import socketio, db
+
+# Use the shared extensions bridge to avoid Vercel ImportErrors
+from extensions import socketio, db
 
 # [BLOCK: STORAGE_CONFIG]
 VAULT_DIR = os.path.join('database', 'vault')
@@ -119,7 +120,6 @@ def handle_command(data):
 def handle_state_report(data):
     """
     THE REFLECTOR: Bounces Kid player state (time, videoId) back to Parent Dashboard Mirror.
-    FIX: Only relay if source is 'kid' to prevent parent mirrors from triggering each other.
     """
     session = active_sessions.get(request.sid)
     if not session: return
@@ -129,7 +129,6 @@ def handle_state_report(data):
 
     # Only relay state updates that come from the actual Tablet
     if role == 'kid' and room:
-        # Send to parent_admin room so the dashboard UI and Mirror update
         emit('state_report', data, to='parent_admin')
 # [/BLOCK: STATE_SYNC]
 
@@ -160,7 +159,7 @@ def handle_snapshot(data):
             emit('new_snapshot', {
                 'kid_id': room,
                 'image': image_data,
-                'url': f"/parent/vault/{filename}"
+                'url': f"/vault/{filename}"
             }, to='parent_admin')
         except Exception as e:
             print(f"[❌] Snapshot save failed: {e}")
